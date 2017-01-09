@@ -167,14 +167,34 @@ void readBankZero()
 	}
 }
 /******************************************************************************/
-int doDump(int argc, char* argv[], U8 carttype, int bankscount)
+int doKindaCrappyScriptedWrites(char* scriptName)
 {
-	char* filename;
-	if ( argc < 2 ) {
-		filename="dump.gb";
-	} else {
-		filename=argv[1];
+	FILE *script = fopen(scriptName, "r");
+	if (!script) {
+		printf("Unable to open file: %s for reading!\n", scriptName);
+		return 2;
 	}
+
+	char line[10];
+	bool oddline = false;
+	int lastval = 0;
+	while (!feof(script)) {
+		fgets(line, 10, script);
+		int i = strtol(line, NULL, 16);
+		if (!oddline) {
+			oddline = true;
+		}
+		else {
+			gb_sendwrite(lastval, i);
+			oddline = false;
+		}
+		lastval = i;
+	}
+	return 0;
+}
+/******************************************************************************/
+int doDump(char* filename,bool overrideMode,U8 carttype, int bankscount)
+{
 	FILE *f = fopen(filename,"wb");
     if(!f) {
         printf("Unable to open file: %s for writing!\n",filename);
@@ -184,36 +204,10 @@ int doDump(int argc, char* argv[], U8 carttype, int bankscount)
 	printf("\nWriting to file: %s\n",filename);
 
 
-	if (argc >= 3) {
-
+	if (overrideMode) {
 		printf("CUSTOM MODE\n");
 		bankscount = 0x100;
 		carttype = 0xFF;
-
-		if ( memcmp(argv[2],"-o",8) != 0 && memcmp(argv[2],"-i",2) != 0 ){
-			FILE *script = fopen(argv[2], "r");
-			if (!script) {
-				printf("Unable to open file: %s for reading!\n", argv[2]);
-				return 2;
-			}
-
-			char line[10];
-			bool oddline = false;
-			int lastval = 0;
-			while (!feof(script)) {
-				fgets(line, 10, script);
-				int i = strtol(line, NULL, 16);
-				if (!oddline) {
-					oddline = true;
-				}
-				else {
-					gb_sendwrite(lastval, i);
-					oddline = false;
-				}
-				lastval = i;
-			}
-		}
-
 	}
 
     // dump the data
@@ -284,7 +278,7 @@ vector<string> split(const string &s, char delim) {
 int interactive()
 {
 	printf("\n* Interactive mode *\n\n");
-	printf("Usage:\nr xxxx yy to read yy bytes from xxxx\nw xxxx yy to write yy to xxxx\nd to exit interactive & dump rom\nt to reread title\nx to exit\n"
+	printf("Usage:\nr xxxx yy to read yy bytes from xxxx\nw xxxx yy to write yy to xxxx\nd to dump 4mb as standard mbc\na to attempt auto-detect and dump\nt to reread title\nx to exit\n"
 	       "All numbers should be in hexadecimal\nMultiple commands can be separated by semicolons\nDon't put a space after the semicolon tho\n");
 
 	while(1) {
@@ -308,6 +302,9 @@ int interactive()
 			}
 			if ( mode == "d" ) {
 				return 1;
+			}
+			if ( mode == "a" ) {
+				return 2;
 			}
 			if ( mode == "t" ) {
 				gb_sendblockread(0x134,16);
@@ -421,7 +418,7 @@ int main(int argc, char* argv[])
 	hdr.totalbanks = (1<<(hdr.romsize&0xF)) * 2;
 	if(hdr.romsize&0xF0)
 		hdr.totalbanks += (1<<((hdr.romsize>>4)&0xF)) * 2;
-	int banksize = 0x4000;
+
 	printf(
 		"size: %d KB\n",
 		hdr.totalbanks*16
@@ -434,15 +431,39 @@ int main(int argc, char* argv[])
 
 	readBankZero();
 
+	char* filename;
+	if ( argc < 2 ) {
+		filename="dump.gb";
+	} else {
+		filename=argv[1];
+	}
+
+	bool interactiveMode = false;
+	bool overrideMode = false;
+	bool scriptedMode = false;
+	char* scriptName = "";
+	if (argc >= 3) {
+		if ( memcmp(argv[2],"-o",8) == 0 )
+			overrideMode = true;
+		else if ( memcmp(argv[2],"-i",2) == 0 )
+			interactiveMode = true;
+		else {
+			scriptedMode = true;
+			overrideMode = true;
+			scriptName = argv[2];
+		}
+	}
+
 	while(1) {
 
 		bool dump = false;
-		bool isInter = memcmp(argv[2],"-i",2) == 0;
 
-		if (argc >= 2 && isInter) {
+		if (interactiveMode) {
 			int intret = interactive();
-			if ( intret == 1 )  {
+			if ( intret >= 1 )  {
 				dump = true;
+				if (intret == 2) overrideMode = false;
+				else overrideMode = true;
 			} else if ( intret == -1 ) {
 				break;
 			}
@@ -451,11 +472,17 @@ int main(int argc, char* argv[])
 		}
 
 		if ( dump ) {
-			int retval= doDump(argc,argv, carttype, bankscount);
+
+			if (scriptedMode){
+				int scretval = doKindaCrappyScriptedWrites(scriptName);
+				if (scretval > 0) return scretval;
+			}
+
+			int retval= doDump(filename,overrideMode,carttype, bankscount);
 			if ( retval != 0 ) return retval;
 		}
 
-		if ( isInter ) {
+		if ( interactiveMode ) {
 			printf("\nReturn to interactive mode y/n?\n");
 		} else {
 			printf("\nDump again y/n?\n");
