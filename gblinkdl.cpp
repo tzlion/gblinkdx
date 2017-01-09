@@ -283,8 +283,9 @@ vector<string> split(const string &s, char delim) {
 /******************************************************************************/
 int interactive()
 {
-	printf("\nInteractive mode\n");
-	printf("Usage:\nr xxxx yy to read yy bytes from xxxx\nw xxxx yy to write yy to xxxx\nd to exit interactive & dump to idump.gb\nx to exit\nMultiple commands can be separated by semicolons\n");
+	printf("\n* Interactive mode *\n\n");
+	printf("Usage:\nr xxxx yy to read yy bytes from xxxx\nw xxxx yy to write yy to xxxx\nd to exit interactive & dump rom\nt to reread title\nx to exit\n"
+	       "All numbers should be in hexadecimal\nMultiple commands can be separated by semicolons\nDon't put a space after the semicolon tho\n");
 
 	while(1) {
 		std::string inpstring = "";
@@ -315,34 +316,35 @@ int interactive()
 				newtitle[16] = '\0';
 				printf("Title: %s\n",newtitle);
 			}
-			if ( ( mode == "r" || mode == "w" ) && ( command.length() != 9 || command.substr(1,1) != " " || command.substr(6,1) != " " ) )  {
-				printf("Unrecognised format\n");
-				continue;
-			}
-			if ( mode == "r" ) {
-				std::string addrs=command.substr(2,4);
-				int addr = strtol(addrs.c_str(), NULL, 16);
+			if ( ( mode == "r" || mode == "w" ) )  {
 
-				std::string lens=command.substr(7,2);
-				int len= strtol(lens.c_str(), NULL, 16);
+				vector<string> parts = split(command,' ');
 
-				gb_sendblockread(addr,len);
-				for(int i=0;i<len;i++) {
-					if (i>0 && i % 16 == 0) {
-						printf("\n");
+			    if ( parts.size() != 3 ) {
+                    printf("Unrecognised format\n");
+                    continue;
+			    }
+				if ( mode == "r" ) {
+					int addr = strtol(parts[1].c_str(), NULL, 16);
+					int len= strtol(parts[2].c_str(), NULL, 16);
+
+					gb_sendblockread(addr,len);
+					for(int i=0;i<len;i++) {
+						if (i>0 && i % 16 == 0) {
+							printf("\n");
+						}
+						printf("%02x ",gb_readbyte());
 					}
-					printf("%02x ",gb_readbyte());
-				}
 
-				printf("\n");
+					printf("\n");
+				}
+				if ( mode == "w" ) {
+					int addr = strtol(parts[1].c_str(), NULL, 16);
+					int val = strtol(parts[2].c_str(), NULL, 16);
+					gb_sendwrite(addr,val);
+				}
 			}
-			if ( mode == "w" ) {
-				std::string addrs=command.substr(2,4);
-				int addr = strtol(addrs.c_str(), NULL, 16);
-				std::string vals=command.substr(7,2);
-				int val = strtol(vals.c_str(), NULL, 16);
-				gb_sendwrite(addr,val);
-			}
+
 
 		}
 
