@@ -1,11 +1,11 @@
 /******************************************************************************/
 // gblinkdl.cpp
-// By Brian Provinciano
+// Original by Brian Provinciano
 // http://www.bripro.com
 // November 2nd, 2005
+// Modified by taizou 2016-2017
 /******************************************************************************/
 #include "stdafx.h"
-// #include "conio.h"  // WIN ONLY
 #include "stdio.h"
 #include "string.h"
 #include "stdlib.h"
@@ -157,22 +157,21 @@ void gb_readblock(FILE *f, U16 addr, int len)
         for(int i=0;i<len;i++)
             fputc(gb_readbyte(),f);
 }
-
+/******************************************************************************/
 void readBankZero()
 {
     // read the first bank of ROM
 	printf("\nDownloading first bank...\n");
 	for(int i=0;i<0x4000;i++) {
 		bank0[i] = gb_readbyte();
-		///// why tho
 	}
 }
-
+/******************************************************************************/
 int doDump(int argc, char* argv[], U8 carttype, int bankscount)
 {
 	char* filename;
-	if ( argc < 2 || memcmp(argv[1],"-i",2) == 0 ) {
-		filename="idump.gb";
+	if ( argc < 2 ) {
+		filename="dump.gb";
 	} else {
 		filename=argv[1];
 	}
@@ -191,13 +190,12 @@ int doDump(int argc, char* argv[], U8 carttype, int bankscount)
 		bankscount = 0x100;
 		carttype = 0xFF;
 
-		if ( memcmp(argv[2],"override",8) != 0 ) {
+		if ( memcmp(argv[2],"-o",8) != 0 && memcmp(argv[2],"-i",2) != 0 ){
 			FILE *script = fopen(argv[2], "r");
 			if (!script) {
 				printf("Unable to open file: %s for reading!\n", argv[2]);
 				return 2;
 			}
-
 
 			char line[10];
 			bool oddline = false;
@@ -205,7 +203,6 @@ int doDump(int argc, char* argv[], U8 carttype, int bankscount)
 			while (!feof(script)) {
 				fgets(line, 10, script);
 				int i = strtol(line, NULL, 16);
-				//printf("%04X\n", i);
 				if (!oddline) {
 					oddline = true;
 				}
@@ -217,26 +214,17 @@ int doDump(int argc, char* argv[], U8 carttype, int bankscount)
 			}
 		}
 
-
-
-		// re-read the first bank of ROM
-		//for (int i = 0; i<0x4000; i++)
-		//	bank0[i] = gb_readbyte();
 	}
-
-
 
     // dump the data
     switch(carttype) {
         case 0: // 0 - ROM ONLY
-			// readBankZero();
 		    fwrite(bank0,0x4000,1,f);
             gb_readblock(f, 0x4000,0x4000);
             break;
         case 1: // ROM+MBC1
         case 2: // ROM+MBC1+RAM
         case 3: // ROM+MBC1+RAM+BATT
-			//readBankZero();
 		    fwrite(bank0,0x4000,1,f);
 
             if(memcmp(hdr.gamename,"SUPER MARIO 3",13)==0) {
@@ -262,20 +250,8 @@ int doDump(int argc, char* argv[], U8 carttype, int bankscount)
             break;
         default:
 			printf("Cartridge type (real): %02X\n", hdr.carttype);
-			if (false&&memcmp(hdr.gamename, "TIMER MONSTER", 13) == 0) {
-				printf("VF Multi test\n");
-				gb_sendwrite(0x5000, 0xAA);
-				gb_sendwrite(0x7000, 0x80);
-				gb_sendwrite(0x5000, 0xBB);
-				gb_sendwrite(0x7000, 0x32);
-				gb_sendwrite(0x5000, 0x55);
-				gb_sendwrite(0x7000, 0x82);
-				gb_readblock(f, 0x0000, 0x4000);
-			} else {
-				printf("Trying as regular ass MBC(5)\n");
-				//fwrite(bank0, 0x4000, 1, f);
-				gb_readblock(f, 0x0000, 0x4000);
-			}
+			printf("Trying as regular ass MBC(5)\n");
+			gb_readblock(f, 0x0000, 0x4000);
 			for(int bank = 1; bank<bankscount; bank++) {
                     gb_sendwrite(0x2000,bank);
                     gb_readblock(f, 0x4000,0x4000);
@@ -290,8 +266,7 @@ int doDump(int argc, char* argv[], U8 carttype, int bankscount)
 	return 0;
 
 }
-
-
+/******************************************************************************/
 // http://stackoverflow.com/questions/236129/split-a-string-in-c
 void split(const string &s, char delim, vector<string> &elems) {
     stringstream ss(s);
@@ -305,7 +280,7 @@ vector<string> split(const string &s, char delim) {
     split(s, delim, elems);
     return elems;
 }
-
+/******************************************************************************/
 int interactive()
 {
 	printf("\nInteractive mode\n");
@@ -314,10 +289,8 @@ int interactive()
 	while(1) {
 		std::string inpstring = "";
 		std::string mode = "";
-		//while (mode != "x" && mode != "w" && mode != "r" && mode != "d") {
 		printf("\nEnter command: ");
 		getline(std::cin,inpstring);
-		//}
 
 		printf("\n");
 
@@ -347,14 +320,10 @@ int interactive()
 				continue;
 			}
 			if ( mode == "r" ) {
-				//printf("enter hex addr to read\n");
 				std::string addrs=command.substr(2,4);
-				//getline(std::cin,addrs);
 				int addr = strtol(addrs.c_str(), NULL, 16);
 
-				//printf("enter length to read in hex\n");
 				std::string lens=command.substr(7,2);
-				//getline(std::cin,lens);
 				int len= strtol(lens.c_str(), NULL, 16);
 
 				gb_sendblockread(addr,len);
@@ -368,13 +337,9 @@ int interactive()
 				printf("\n");
 			}
 			if ( mode == "w" ) {
-				//printf("enter hex addr to write\n");
 				std::string addrs=command.substr(2,4);
-				//getline(std::cin,addrs);
 				int addr = strtol(addrs.c_str(), NULL, 16);
-				//printf("enter hex val to write\n");
 				std::string vals=command.substr(7,2);
-				//getline(std::cin,vals);
 				int val = strtol(vals.c_str(), NULL, 16);
 				gb_sendwrite(addr,val);
 			}
@@ -384,17 +349,19 @@ int interactive()
 	}
 	return 0;
 }
-
 /******************************************************************************/
 int main(int argc, char* argv[])
 {
     printf(
         "GBlinkdl PC Client\n"
         "Original by Brian Provinciano November 2nd, 2005 http://www.bripro.com\n"
-		"Modified by some lion Aug 2016\n\n");
+		"Modified by taizou 2016-2017\n\n");
 
     if(argc < 2) {
-		printf("Usage: gblinkdl \"output filename\" \"pre-dump script (optional)\"\n\n");
+		printf("Usage: gblinkdl \"output filename\" [option]\n"
+		" Option can be: -i for interactive mode\n"
+		"                -o to override auto-detection and dump max size as standard MBC\n"
+		"                Any other value will be treated as a pre-dump script filename\n\n");
         return 3;
     }
 
@@ -409,8 +376,7 @@ int main(int argc, char* argv[])
 
     // perform communication
 	printf("Waiting for Game Boy...\n");
-    while(gb_sendbyte(0x9A)!=0xB4)
-		if(/*kbhit()*/false) return 1;
+    while(gb_sendbyte(0x9A)!=0xB4) {}
     lptdelay(2000);
     if(gb_sendbyte(0x9A)!=0x1D) {
         printf("Bad connection\n");
@@ -443,15 +409,12 @@ int main(int argc, char* argv[])
 
 	if(gb_readbyte() != 0) {// verify we're done
 		printf("expected 0x00 from GB, bad connection\n");
-		//getch();
 		return 1;
 	}
 	if(gb_readbyte() != 0xFF) {// verify we're done
 		printf("expected 0xFF from GB, bad connection\n");
-		//getch();
 		return 1;
 	}
-
 
 	hdr.totalbanks = (1<<(hdr.romsize&0xF)) * 2;
 	if(hdr.romsize&0xF0)
@@ -467,12 +430,12 @@ int main(int argc, char* argv[])
 	U8 carttype = hdr.carttype;
 	int bankscount = hdr.totalbanks;
 
-	readBankZero(); // This is where this apparently needs to be done // tried to remove it but it fails if no
+	readBankZero();
 
 	while(1) {
 
 		bool dump = false;
-		bool isInter = memcmp(argv[1],"-i",2) == 0;
+		bool isInter = memcmp(argv[2],"-i",2) == 0;
 
 		if (argc >= 2 && isInter) {
 			int intret = interactive();
@@ -512,5 +475,3 @@ int main(int argc, char* argv[])
 	return 0;
 }
 /******************************************************************************/
-
-
