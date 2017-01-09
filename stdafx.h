@@ -7,7 +7,7 @@
 
 
 #include <stdio.h>
-#include <windows.h>
+// #include <windows.h> // fffssh
 
 
 // TODO: reference additional headers your program requires here
@@ -39,7 +39,7 @@ enum {
 };
 
 
-                                   
+
 
 enum {
 	// .... ..cd
