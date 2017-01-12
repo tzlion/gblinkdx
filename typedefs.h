@@ -12,7 +12,7 @@ typedef unsigned long		U32;
 typedef signed long			S32;
 //typedef signed __int64		U64;
 //typedef unsigned __int64 	S64;
-#ifndef _WINDOWS_
+#ifndef _WIN32
 typedef unsigned short		BOOL;
 #endif
 

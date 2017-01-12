@@ -9,7 +9,9 @@
 #include "stdio.h"
 #include "string.h"
 #include "stdlib.h"
+#ifndef _WIN32
 #include <sys/io.h>
+#endif
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -22,13 +24,13 @@ char szt[1000];
 /******************************************************************************/
 unsigned char inportb(unsigned short port)
 {
-#ifdef WINDOWS
+#ifdef _WIN32
 	unsigned char res;
-	__asm (
+	__asm {
 		mov dx, port
-		in al,dx
-		mov res, al
-	);
+			in al, dx
+			mov res, al
+	};
 	return res;
 #else
    return inb(port);
@@ -37,12 +39,12 @@ unsigned char inportb(unsigned short port)
 /******************************************************************************/
 void outportb(unsigned short port, unsigned char value)
 {
-#ifdef WINDOWS
-   __asm (
+#ifdef _WIN32
+	__asm {
 		mov dx, port
-		mov al, value
-		out dx, al
-   );
+			mov al, value
+			out dx, al
+	};
 #else
    outb(value,port);
 #endif
@@ -291,7 +293,7 @@ int interactive()
 
 		vector<string> commands = split(inpstring,';');
 
-		for(uint s=0;s<commands.size();s++) {
+		for(int s=0;s<commands.size();s++) {
 
 			string command = commands[s];
 
@@ -352,20 +354,21 @@ int interactive()
 int main(int argc, char* argv[])
 {
     printf(
-        "GBlinkdl PC Client\n"
-        "Original by Brian Provinciano November 2nd, 2005 http://www.bripro.com\n"
+        "GBLinkDX PC Client\n"
+        "Original GBlinkdl by Brian Provinciano November 2nd, 2005 http://www.bripro.com\n"
 		"Modified by taizou 2016-2017\n\n");
 
     if(argc < 2) {
-		printf("Usage: gblinkdl \"output filename\" [option]\n"
+		printf("Usage: gblinkdx \"output filename\" [option]\n"
 		" Option can be: -i for interactive mode\n"
 		"                -o to override auto-detection and dump max size as standard MBC\n"
-		"                Any other value will be treated as a pre-dump script filename\n\n");
+		"                Any other value will be treated as a pre-dump script filename\n"
+		"                (Scripted mode implies -o)\n\n");
         return 3;
     }
 
 	printf("Setting up ports...\n");
-#ifndef WINDOWS
+#ifndef _WIN32
 	ioperm(0x378,3,true);
 #endif
     // set up the parallel port

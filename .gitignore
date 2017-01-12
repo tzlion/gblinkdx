@@ -1,7 +1,13 @@
 bin/*
 obj/*
+Debug/*
+Release/*
+.vs/*
 *.cbp
 *.depend
 *.layout
 .idea/*
-
+*.vcxproj
+*.vcxproj.*
+*.sln
+*.VC.db
