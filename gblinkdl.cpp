@@ -5,7 +5,7 @@
 // November 2nd, 2005
 // Modified by taizou 2016-2017
 /******************************************************************************/
-#include "stdafx.h"
+#include "typedefs.h"
 #include "stdio.h"
 #include "string.h"
 #include "stdlib.h"
@@ -434,17 +434,12 @@ int main(int argc, char* argv[])
 
 	readBankZero();
 
-	char* filename;
-	if ( argc < 2 ) {
-		filename="dump.gb";
-	} else {
-		filename=argv[1];
-	}
+	char* filename=argv[1];
 
 	bool interactiveMode = false;
 	bool overrideMode = false;
 	bool scriptedMode = false;
-	char* scriptName = "";
+	char* scriptName;
 	if (argc >= 3) {
 		if ( memcmp(argv[2],"-o",8) == 0 )
 			overrideMode = true;
