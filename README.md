@@ -7,11 +7,10 @@ Modifications by taizou 2016-2017
 A small tool designed to communicate with the GBlinkdl program for Game Boy via a parallel -> GB link cable and allow
 for dumping of ROMs, reverse engineering of mappers and other fun stuff.
 
-The original version was designed for Windows, but under modern version of Windows - ESPECIALLY 64-bit - it is pretty
-hard to get raw parallel port access, so this new version has been developed primarily for Linux instead.
+The original version was designed for Windows, but this new version now supports Linux too.
 
-I have tried to maintain the Windows compatibility too and have compiled a Windows executable which should work at least
-in 32-bit XP, but no guarantees since I've been unable to test it under this OS.
+Parallel port access should now be possible under both OSs, including modern and 64-bit versions of Windows thanks to
+[inpout32.dll](http://www.highrez.co.uk/downloads/inpout32/).
 
 HOW TO USE
 ==========
@@ -21,9 +20,7 @@ You will need
 
 * A Game Boy Color (GBA probably can't do the cart swap due to hardware switching, wasn't able to get it working on a GB
   Pocket either)
-* A computer with an onboard parallel port (not tested with PCI cards or USB adapters)
-* An OS running on the computer which will give you direct parallel port access - e.g Linux or Windows XP, maybe later
-  32-bit Windows versions with some third-party drivers installed (untested)
+* A computer running Windows or Linux with an onboard parallel port (not tested with PCI cards or USB adapters)
 * A Game Boy flash cart
 * The gblinkdl.gb Game Boy ROM which you can find in
   [Brian Provinciano's original GBlinkdl package](http://web.archive.org/web/20070203014624/http://www.bripro.com/low/hardware/gblinkdl/files/gblinkdl.zip)
@@ -40,14 +37,10 @@ Running this software
 4. Run gblinkdx as superuser (necessary for parallel port access) e.g. `sudo gblinkdx dump.gb`
 
 ### Windows
-1. Install [Visual C++ Redistributable 2015](https://www.microsoft.com/en-us/download/details.aspx?id=48145) if you
-   don't already have it
-2. Download the Windows executable from the latest release
-3. Open a command prompt in the directory it's in
-4. Run gblinkdx e.g. `gblinkdx dump.gb`
-
-* If you would like to compile this program as-is for Windows, you will need to use some version of Visual C++ as it
-  uses VC-specific ASM syntax for parallel port access.
+1. Download the Windows executable from the latest release - this should also come with inpout32.dll
+2. Open a command prompt in the directory it's in. The first time you run it, you may need to run as administrator
+   to allow inpout32 to install its driver.
+3. Run gblinkdx e.g. `gblinkdx dump.gb`
 
 Linking with a Game Boy
 -----------------------

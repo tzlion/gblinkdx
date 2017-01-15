@@ -11,6 +11,8 @@
 #include "stdlib.h"
 #ifndef _WIN32
 #include <sys/io.h>
+#else
+#include "windows.h"
 #endif
 #include <iostream>
 #include <string>
@@ -21,17 +23,19 @@ using namespace std;
 GBHDR hdr;
 U8 bank0[0x4000];
 char szt[1000];
+
+#ifdef _WIN32
+typedef void(__stdcall *lpOut32)(short, short);
+typedef short(__stdcall *lpInp32)(short);
+lpOut32 gfpOut32;
+lpInp32 gfpInp32;
+#endif
+
 /******************************************************************************/
 unsigned char inportb(unsigned short port)
 {
 #ifdef _WIN32
-	unsigned char res;
-	__asm {
-		mov dx, port
-			in al, dx
-			mov res, al
-	};
-	return res;
+	return gfpInp32(port);
 #else
    return inb(port);
 #endif
@@ -40,11 +44,7 @@ unsigned char inportb(unsigned short port)
 void outportb(unsigned short port, unsigned char value)
 {
 #ifdef _WIN32
-	__asm {
-		mov dx, port
-			mov al, value
-			out dx, al
-	};
+	gfpOut32(port,value);
 #else
    outb(value,port);
 #endif
@@ -350,11 +350,23 @@ int interactive()
 	}
 	return 0;
 }
+
 /******************************************************************************/
 int main(int argc, char* argv[])
 {
+#ifdef _WIN32
+	HINSTANCE hInpOutDll;
+	hInpOutDll = LoadLibrary("inpout32.dll");
+	if (hInpOutDll != NULL) {
+		gfpOut32 = (lpOut32)GetProcAddress(hInpOutDll, "Out32");
+		gfpInp32 = (lpInp32)GetProcAddress(hInpOutDll, "Inp32");
+	} else {
+		printf("Unable to load inpout32.dll\n");
+		return -1;
+	}
+#endif
     printf(
-        "GBlinkDX PC Client\n"
+        "GBlinkDX PC Client v0.2\n"
         "Original GBlinkdl by Brian Provinciano November 2nd, 2005 http://www.bripro.com\n"
 		"Modified by taizou 2016-2017\n\n");
 
@@ -368,6 +380,7 @@ int main(int argc, char* argv[])
     }
 
 	printf("Setting up ports...\n");
+
 #ifndef _WIN32
 	ioperm(0x378,3,true);
 #endif
@@ -496,6 +509,10 @@ int main(int argc, char* argv[])
 	outportb(LPTREG_DATA, D_CLOCK_HIGH);
 	outportb(LPTREG_CONTROL, inportb(LPTREG_CONTROL)&(~CTL_MODE_DATAIN));
 	outportb(LPTREG_DATA, 0xFF);
+
+#ifdef _WIN32
+	FreeLibrary(hInpOutDll);
+#endif
 
 	printf("exiting\n");
 
