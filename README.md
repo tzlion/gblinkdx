@@ -1,7 +1,7 @@
 GBlinkDX PC Client
 ==================
 Based on Brian Provinciano's GBlinkdl client from Nov 2005
-([archived page](http://web.archive.org/web/20070203014624/http://www.bripro.com/low/hardware/index.php?page=gblinkdl))
+([archived page](http://web.archive.org/web/20070203014624/http://www.bripro.com/low/hardware/index.php?page=gblinkdl))  
 Modifications by taizou 2016-2017
 
 A small tool designed to communicate with the GBlinkdl program for Game Boy via a parallel -> GB link cable and allow
