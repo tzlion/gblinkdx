@@ -68,6 +68,10 @@ a cheat cartridge. I use an Xploder Lite for this purpose. However ensure the ch
 that the cheat cart acts as a direct passthrough in this state (ie the game starts directly without any menus) or you
 may end up dumping the cheat cartridge's internal ROM instead!
 
+Another option detailed on the original [GBlinkdl page] (http://web.archive.org/web/20070203014624/http://www.bripro.com/low/hardware/index.php?page=gblinkdl)
+is to use a Game Genie, bypass the cheat screen and boot the GBlinkdl program, and then swap the cart while keeping the
+Game Genie in the system.
+
 Options/modes
 -------------
 
