@@ -22,7 +22,8 @@ You will need
 * A Game Boy Color (GBA probably can't do the cart swap due to hardware switching, wasn't able to get it working on a GB
   Pocket either)
 * A computer with an onboard parallel port (not tested with PCI cards or USB adapters)
-* An OS running on the computer which will give you direct parallel port access - e.g Linux or Windows XP
+* An OS running on the computer which will give you direct parallel port access - e.g Linux or Windows XP, maybe later
+  32-bit Windows versions with some third-party drivers installed (untested)
 * A Game Boy flash cart
 * The gblinkdl.gb Game Boy ROM which you can find in
   [Brian Provinciano's original GBlinkdl package](http://web.archive.org/web/20070203014624/http://www.bripro.com/low/hardware/gblinkdl/files/gblinkdl.zip)
