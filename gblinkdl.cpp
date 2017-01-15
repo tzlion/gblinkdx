@@ -354,7 +354,7 @@ int interactive()
 int main(int argc, char* argv[])
 {
     printf(
-        "GBLinkDX PC Client\n"
+        "GBlinkDX PC Client\n"
         "Original GBlinkdl by Brian Provinciano November 2nd, 2005 http://www.bripro.com\n"
 		"Modified by taizou 2016-2017\n\n");
 

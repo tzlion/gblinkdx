@@ -1,4 +1,4 @@
-GBLinkDX PC Client
+GBlinkDX PC Client
 ==================
 Based on Brian Provinciano's GBlinkdl client from Nov 2005
 ([archived page](http://web.archive.org/web/20070203014624/http://www.bripro.com/low/hardware/index.php?page=gblinkdl))
@@ -23,9 +23,7 @@ You will need
   Pocket either)
 * A computer with an onboard parallel port (not tested with PCI cards or USB adapters)
 * An OS running on the computer which will give you direct parallel port access - e.g Linux or Windows XP
-* For the Windows version you'll also require the 
-  [Visual C++ Redistributable 2015](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
-* A flash cart
+* A Game Boy flash cart
 * The gblinkdl.gb Game Boy ROM which you can find in
   [Brian Provinciano's original GBlinkdl package](http://web.archive.org/web/20070203014624/http://www.bripro.com/low/hardware/gblinkdl/files/gblinkdl.zip)
 * A GB Link -> Parallel cable, which you can build according to the schematic in the package linked above (the one
@@ -41,15 +39,17 @@ Running this software
 4. Run gblinkdx as superuser (necessary for parallel port access) e.g. `sudo gblinkdx dump.gb`
 
 ### Windows
-1. Download the Windows executable from the latest release
-2. Open a command prompt in the directory it's in
-3. Run gblinkdx e.g. `gblinkdx dump.gb`
+1. Install [Visual C++ Redistributable 2015](https://www.microsoft.com/en-us/download/details.aspx?id=48145) if you
+   don't already have it
+2. Download the Windows executable from the latest release
+3. Open a command prompt in the directory it's in
+4. Run gblinkdx e.g. `gblinkdx dump.gb`
 
-* If you would like to compile this program as-is for Windows you will need to use Visual C++
-  as it uses VC-specific ASM syntax for parallel port access.
+* If you would like to compile this program as-is for Windows, you will need to use some version of Visual C++ as it
+  uses VC-specific ASM syntax for parallel port access.
 
-Connecting to a Game Boy
-------------------------
+Linking with a Game Boy
+-----------------------
 
 1. Flash gblinkdl.gb to your flash cart
 2. Connect Game Boy to PC
@@ -57,7 +57,7 @@ Connecting to a Game Boy
 4. When you reach the black screen saying "Run GBLinkdl.exe on your PC now".. do NOT do that yet
 5. Remove the flash cart and insert the cartridge you would like to dump. (If the GB resets at this point see
    'Reset avoidance' below)
-6. Run the PC client software at a command line, as detailed in "Running the software" above.
+6. Run the PC client software at a command line, as detailed in "Running this software" above.
 7. If the connection has worked properly you will see the GB cart's name etc appear on both the PC and Game Boy screens.
 
 Reset avoidance
