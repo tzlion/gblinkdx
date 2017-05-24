@@ -17,9 +17,9 @@ typedef unsigned short		BOOL;
 //data		register(baseaddress + 0)  	0x378  	0x278
 #define LPTREG_DATA					0x378
 //status	register (baseaddress + 1) 	0x379 	0x279
-#define LPTREG_STATUS				0x379
+#define LPTREG_STATUS				(LPTREG_DATA + 1)
 //control	register (baseaddress + 2) 	0x37a 	0x27a
-#define LPTREG_CONTROL				0x37A
+#define LPTREG_CONTROL				(LPTREG_DATA + 2)
 
 enum {
 	STATUS_BUSY				= 0x80,
