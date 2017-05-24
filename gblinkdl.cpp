@@ -9,10 +9,16 @@
 #include "stdio.h"
 #include "string.h"
 #include "stdlib.h"
-#ifndef _WIN32
+#ifdef __linux__
 #include <sys/io.h>
-#else
+#elif defined(__FreeBSD__)
+#include <sys/types.h>
+#include <machine/cpufunc.h>
+#include <machine/sysarch.h>
+#elif defined(_WIN32)
 #include "windows.h"
+#else
+#error Unsupported platform
 #endif
 #include <iostream>
 #include <string>
@@ -45,7 +51,9 @@ void outportb(unsigned short port, unsigned char value)
 {
 #ifdef _WIN32
 	gfpOut32(port,value);
-#else
+#elif defined(__FreeBSD__)
+   outb(port,value);
+#elif defined(__linux__)
    outb(value,port);
 #endif
 }
@@ -381,8 +389,10 @@ int main(int argc, char* argv[])
 
 	printf("Setting up ports...\n");
 
-#ifndef _WIN32
-	ioperm(0x378,3,true);
+#ifdef __linux__
+	ioperm(LPTREG_DATA, 3 , true);
+#elif defined(__FreeBSD__)
+	i386_set_ioperm(LPTREG_DATA, 3, true);
 #endif
     // set up the parallel port
 	outportb(LPTREG_CONTROL, inportb(LPTREG_CONTROL)&(~CTL_MODE_DATAIN));
