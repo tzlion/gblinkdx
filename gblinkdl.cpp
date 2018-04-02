@@ -29,6 +29,7 @@ using namespace std;
 GBHDR hdr;
 U8 bank0[0x4000];
 char szt[1000];
+bool quietMode = false;
 
 #ifdef _WIN32
 typedef void(__stdcall *lpOut32)(short, short);
@@ -137,7 +138,7 @@ void gb_sendbankwrite(U16 start, U16 end, U8 val)
 	gb_sendbyte(start>>8);
 	gb_sendbyte(start&0xFF);
 	gb_sendbyte(val);
-	printf("  Wrote %02X -> %04X\n",val,start);
+	if (!quietMode) printf("  Wrote %02X -> %04X\n",val,start);
 
 }
 /******************************************************************************/
@@ -147,7 +148,7 @@ void gb_sendwrite(U16 addr, U8 val)
 	gb_sendbyte(addr>>8);
 	gb_sendbyte(addr&0xFF);
 	gb_sendbyte(val);
-	printf("  Wrote %02X -> %04X\n",val,addr);
+	if (!quietMode) printf("  Wrote %02X -> %04X\n",val,addr);
 }
 /******************************************************************************/
 void gb_sendblockread(U16 addr, U16 length)
@@ -157,12 +158,12 @@ void gb_sendblockread(U16 addr, U16 length)
 	gb_sendbyte(addr&0xFF);
 	gb_sendbyte(length>>8);
 	gb_sendbyte(length&0xFF);
-	printf("  Starting Block Read: %04X (%04X in size)\n",addr, length);
+	if (!quietMode) printf("  Starting Block Read: %04X (%04X in size)\n",addr, length);
 }
 /******************************************************************************/
 void gb_readblock(FILE *f, U16 addr, int len)
 {
-    printf("READ BLOCK: %04X, %04X\n",addr,len);
+	if (!quietMode) printf("READ BLOCK: %04X, %04X\n",addr,len);
         gb_sendblockread(addr,len);
         for(int i=0;i<len;i++)
             fputc(gb_readbyte(),f);
@@ -171,7 +172,7 @@ void gb_readblock(FILE *f, U16 addr, int len)
 void readBankZero()
 {
     // read the first bank of ROM
-	printf("\nDownloading first bank...\n");
+	if (!quietMode) printf("\nDownloading first bank...\n");
 	for(int i=0;i<0x4000;i++) {
 		bank0[i] = gb_readbyte();
 	}
@@ -323,6 +324,9 @@ int interactive()
 				newtitle[16] = '\0';
 				printf("Title: %s\n",newtitle);
 			}
+			if ( mode == "l" ) {
+				printf("\n");
+			}
 			if ( ( mode == "r" || mode == "w" ) )  {
 
 				vector<string> parts = split(command,' ');
@@ -338,12 +342,12 @@ int interactive()
 					gb_sendblockread(addr,len);
 					for(int i=0;i<len;i++) {
 						if (i>0 && i % 16 == 0) {
-							printf("\n");
+							if (!quietMode) printf("\n");
 						}
 						printf("%02x ",gb_readbyte());
 					}
 
-					printf("\n");
+					if (!quietMode) printf("\n");
 				}
 				if ( mode == "w" ) {
 					int addr = strtol(parts[1].c_str(), NULL, 16);
@@ -381,6 +385,7 @@ int main(int argc, char* argv[])
     if(argc < 2) {
 		printf("Usage: gblinkdx \"output filename\" [option]\n"
 		" Option can be: -i for interactive mode\n"
+		"                -q for quiet interactive mode\n"
 		"                -o to override auto-detection and dump max size as standard MBC\n"
 		"                Any other value will be treated as a pre-dump script filename\n"
 		"                (Scripted mode implies -o)\n\n");
@@ -462,13 +467,17 @@ int main(int argc, char* argv[])
 	bool interactiveMode = false;
 	bool overrideMode = false;
 	bool scriptedMode = false;
+	quietMode = false;
 	char* scriptName;
 	if (argc >= 3) {
 		if ( memcmp(argv[2],"-o",2) == 0 )
 			overrideMode = true;
 		else if ( memcmp(argv[2],"-i",2) == 0 )
 			interactiveMode = true;
-		else {
+		else if ( memcmp(argv[2],"-q",2) == 0 ) {
+			interactiveMode = true;
+			quietMode = true;
+		} else {
 			scriptedMode = true;
 			overrideMode = true;
 			scriptName = argv[2];
