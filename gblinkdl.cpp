@@ -464,7 +464,7 @@ int main(int argc, char* argv[])
 	bool scriptedMode = false;
 	char* scriptName;
 	if (argc >= 3) {
-		if ( memcmp(argv[2],"-o",8) == 0 )
+		if ( memcmp(argv[2],"-o",2) == 0 )
 			overrideMode = true;
 		else if ( memcmp(argv[2],"-i",2) == 0 )
 			interactiveMode = true;
