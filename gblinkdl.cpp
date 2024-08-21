@@ -31,6 +31,10 @@ U8 bank0[0x4000];
 char szt[1000];
 bool quietMode = false;
 
+unsigned short dataPort = LPTREG_DATA;
+unsigned short statusPort = LPTREG_STATUS;
+unsigned short controlPort = LPTREG_CONTROL;
+
 #ifdef _WIN32
 typedef void(__stdcall *lpOut32)(short, short);
 typedef short(__stdcall *lpInp32)(short);
@@ -73,7 +77,7 @@ char *printbin(U8 v)
 void lptdelay(int amt)
 {
     for(int i=0;i<amt;i++)
-		inportb(LPTREG_DATA);
+		inportb(dataPort);
 }
 /******************************************************************************/
 U8 gb_sendbyte(U8 value)
@@ -82,15 +86,15 @@ U8 gb_sendbyte(U8 value)
 	for(int i=7;i>=0;i--) {
 		U8 v = (value>>i)&1;
 
-		outportb(LPTREG_DATA, v|D_CLOCK_HIGH);
-		outportb(LPTREG_DATA, v);
+		outportb(dataPort, v|D_CLOCK_HIGH);
+		outportb(dataPort, v);
 
-		U8 stat = inportb(LPTREG_STATUS);
+		U8 stat = inportb(statusPort);
 
 		if(!(stat&STATUS_BUSY))
 			read |= (1<<i);
 
-		outportb(LPTREG_DATA, v|D_CLOCK_HIGH);
+		outportb(dataPort, v|D_CLOCK_HIGH);
 	}
 	lptdelay(64);
 	return read;
@@ -100,12 +104,12 @@ U8 gb_readbyte()
 {
 	U8 read = 0;
 	for(int i=7;i>=0;i--) {
-		outportb(LPTREG_DATA, D_CLOCK_HIGH);
-		outportb(LPTREG_DATA, 0);
+		outportb(dataPort, D_CLOCK_HIGH);
+		outportb(dataPort, 0);
 
-		if(!(inportb(LPTREG_STATUS)&STATUS_BUSY))
+		if(!(inportb(statusPort)&STATUS_BUSY))
 			read |= (1<<i);
-		outportb(LPTREG_DATA, D_CLOCK_HIGH);
+		outportb(dataPort, D_CLOCK_HIGH);
 	}
 	// delay between bytes
 	lptdelay(64);
@@ -392,17 +396,30 @@ int main(int argc, char* argv[])
         return 3;
     }
 
-	printf("Setting up ports...\n");
+    FILE *portIni = fopen("port.ini", "r");
+    if (portIni) {
+        char portStr[16];
+        fgets(portStr, 16, portIni);
+        char *endptr;
+        long port = strtol(portStr, &endptr, 16);
+        if (endptr != portStr && *endptr == '\0') {
+            dataPort = (unsigned short)port;
+            statusPort = dataPort + 1;
+            controlPort = dataPort + 2;
+        }
+    }
+
+	printf("Setting up port %04x...\n", dataPort);
 
 #ifdef __linux__
-	ioperm(LPTREG_DATA, 3 , true);
+	ioperm(dataPort, 3 , true);
 #elif defined(__FreeBSD__)
-	i386_set_ioperm(LPTREG_DATA, 3, true);
+	i386_set_ioperm(dataPort, 3, true);
 #endif
     // set up the parallel port
-	outportb(LPTREG_CONTROL, inportb(LPTREG_CONTROL)&(~CTL_MODE_DATAIN));
-	outportb(LPTREG_DATA, 0xFF);
-	outportb(LPTREG_DATA, D_CLOCK_HIGH);
+	outportb(controlPort, inportb(controlPort)&(~CTL_MODE_DATAIN));
+	outportb(dataPort, 0xFF);
+	outportb(dataPort, D_CLOCK_HIGH);
 
     // perform communication
 	printf("Waiting for Game Boy...\n");
@@ -525,9 +542,9 @@ int main(int argc, char* argv[])
 
 	}
 
-	outportb(LPTREG_DATA, D_CLOCK_HIGH);
-	outportb(LPTREG_CONTROL, inportb(LPTREG_CONTROL)&(~CTL_MODE_DATAIN));
-	outportb(LPTREG_DATA, 0xFF);
+	outportb(dataPort, D_CLOCK_HIGH);
+	outportb(controlPort, inportb(controlPort)&(~CTL_MODE_DATAIN));
+	outportb(dataPort, 0xFF);
 
 #ifdef _WIN32
 	FreeLibrary(hInpOutDll);
