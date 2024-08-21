@@ -2,7 +2,7 @@ GBlinkDX PC Client
 ==================
 Based on Brian Provinciano's GBlinkdl client from Nov 2005
 ([archived page](http://web.archive.org/web/20070203014624/http://www.bripro.com/low/hardware/index.php?page=gblinkdl))  
-Modifications by taizou 2016-2017
+Modifications by taizou 2016-2024
 
 A small tool designed to communicate with the GBlinkdl program for Game Boy via a parallel -> GB link cable and allow
 for dumping of ROMs, reverse engineering of mappers and other fun stuff.
@@ -20,7 +20,9 @@ You will need
 
 * A Game Boy Color (GBA probably can't do the cart swap due to hardware switching, wasn't able to get it working on a GB
   Pocket either)
-* A computer running Windows or Linux with an onboard parallel port (not tested with PCI cards or USB adapters)
+* A computer running Windows or Linux with an onboard parallel port or compatible expansion card (not tested with USB
+  adapters)
+  * (The StarTech PEX1P2 PCIe card with AX99100 chip has been tested and works, at least under Windows) 
 * A Game Boy flash cart
 * The gblinkdl.gb Game Boy ROM which you can find in
   [Brian Provinciano's original GBlinkdl package](http://web.archive.org/web/20070203014624/http://www.bripro.com/low/hardware/gblinkdl/files/gblinkdl.zip)
@@ -41,6 +43,17 @@ Running this software
 2. Open a command prompt in the directory it's in. The first time you run it, you may need to run as administrator
    to allow inpout32 to install its driver.
 3. Run gblinkdx e.g. `gblinkdx dump.gb`
+
+### Using a custom port
+If you are using a parallel port on an expansion card, you will probably need to override the port address from the
+default.
+
+To do this, save the 4-digit hexadecimal base address in a text file named port.ini and place it in the same directory
+as the gblinkdx executable.
+
+In Windows you can find this in Device Manager -> Ports (COM & LPT) -> right-click on your expansion card -> Properties
+-> Resources -> I/O Range. The number at the start of the range is the base address. For example for the StarTech card
+it is D010.
 
 Linking with a Game Boy
 -----------------------
@@ -86,6 +99,10 @@ Dump the cartridge to dump.gb as 4mb standard MBC (ignoring the header, useful f
 **-i** e.g. `gblinkdx dump.gb -i`
 Enter interactive mode, see below
 
+**-q** e.g. `gblinkdx dump.gb -q`
+Enter quiet interactive mode. This works the same as interactive mode but does not output the actions it is performing,
+it only outputs data read from the Game Boy.
+
 **Script filename** (any other value) e.g. `gblinkdx dump.gb somescript.txt`
 Perform writes defined in somescript.txt before dumping (implies -o)
 
@@ -100,6 +117,7 @@ Supported commands:
 * `d` dump rom as 4mb standard MBC (as in -o mode)
 * `a` dump rom based on header values (as in default mode)
 * `t` re-read title (useful for checking connection is still ok)
+* `l` line break (useful for splitting up sequences of reads in quiet mode)
 * `x` exit
 
 Numbers entered in `r` and `w` commands must be hexadecimal

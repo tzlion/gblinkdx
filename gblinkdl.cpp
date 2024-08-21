@@ -382,9 +382,9 @@ int main(int argc, char* argv[])
 	}
 #endif
     printf(
-        "GBlinkDX PC Client v0.2\n"
+        "GBlinkDX PC Client v0.3\n"
         "Original GBlinkdl by Brian Provinciano November 2nd, 2005 http://www.bripro.com\n"
-		"Modified by taizou 2016-2017\n\n");
+		"Modified by taizou 2016-2024\n\n");
 
     if(argc < 2) {
 		printf("Usage: gblinkdx \"output filename\" [option]\n"
