@@ -30,6 +30,7 @@ GBHDR hdr;
 U8 bank0[0x4000];
 char szt[1000];
 bool quietMode = false;
+bool xbooCompat = false;
 
 unsigned short dataPort = LPTREG_DATA;
 unsigned short statusPort = LPTREG_STATUS;
@@ -63,6 +64,62 @@ void outportb(unsigned short port, unsigned char value)
 #endif
 }
 /******************************************************************************/
+
+void writeToGb(U8 value, bool clock)
+{
+    if (xbooCompat) {
+        U8 ctrl = inportb(controlPort) & 0xFC;
+        ctrl = ctrl|(!clock);
+        ctrl = ctrl|((!value) << 1);
+        outportb(controlPort, ctrl);
+    } else {
+        outportb(dataPort, value|(clock ? D_CLOCK_HIGH : 0));
+    }
+}
+
+bool readFromGb()
+{
+    if (xbooCompat) {
+        U8 stat = inportb(statusPort);
+        return stat&STATUS_ACK;
+    } else {
+        U8 stat = inportb(statusPort);
+        return !(stat&STATUS_BUSY);
+    }
+}
+
+void initPort()
+{
+    if (xbooCompat) {
+        outportb(controlPort, inportb(controlPort)&(~CTL_MODE_DATAIN));
+        writeToGb(1, 1);
+        writeToGb(0, 1);
+    } else {
+        outportb(controlPort, inportb(controlPort)&(~CTL_MODE_DATAIN));
+        outportb(dataPort, 0xFF);
+        outportb(dataPort, D_CLOCK_HIGH);
+    }
+}
+
+void deinitPort()
+{
+    if (xbooCompat) {
+        writeToGb(0, 1);
+        outportb(controlPort, inportb(controlPort)&(~CTL_MODE_DATAIN));
+        writeToGb(1, 1);
+    } else {
+        outportb(dataPort, D_CLOCK_HIGH);
+        outportb(controlPort, inportb(controlPort)&(~CTL_MODE_DATAIN));
+        outportb(dataPort, 0xFF);
+    }
+}
+
+void delayRead()
+{
+    inportb(dataPort);
+}
+
+/******************************************************************************/
 char *printbin(U8 v)
 {
 	char *s = szt;
@@ -77,7 +134,7 @@ char *printbin(U8 v)
 void lptdelay(int amt)
 {
     for(int i=0;i<amt;i++)
-		inportb(dataPort);
+		delayRead();
 }
 /******************************************************************************/
 U8 gb_sendbyte(U8 value)
@@ -86,15 +143,13 @@ U8 gb_sendbyte(U8 value)
 	for(int i=7;i>=0;i--) {
 		U8 v = (value>>i)&1;
 
-		outportb(dataPort, v|D_CLOCK_HIGH);
-		outportb(dataPort, v);
+        writeToGb(v, 1);
+        writeToGb(v, 0);
 
-		U8 stat = inportb(statusPort);
-
-		if(!(stat&STATUS_BUSY))
+		if(readFromGb())
 			read |= (1<<i);
 
-		outportb(dataPort, v|D_CLOCK_HIGH);
+        writeToGb(v, 1);
 	}
 	lptdelay(64);
 	return read;
@@ -104,12 +159,13 @@ U8 gb_readbyte()
 {
 	U8 read = 0;
 	for(int i=7;i>=0;i--) {
-		outportb(dataPort, D_CLOCK_HIGH);
-		outportb(dataPort, 0);
+        writeToGb(0, 1);
+        writeToGb(0, 0);
 
-		if(!(inportb(statusPort)&STATUS_BUSY))
+		if(readFromGb())
 			read |= (1<<i);
-		outportb(dataPort, D_CLOCK_HIGH);
+
+        writeToGb(0, 1);
 	}
 	// delay between bytes
 	lptdelay(64);
@@ -387,12 +443,18 @@ int main(int argc, char* argv[])
 		"Modified by taizou 2016-2024\n\n");
 
     if(argc < 2) {
-		printf("Usage: gblinkdx \"output filename\" [option]\n"
-		" Option can be: -i for interactive mode\n"
-		"                -q for quiet interactive mode\n"
-		"                -o to override auto-detection and dump max size as standard MBC\n"
-		"                Any other value will be treated as a pre-dump script filename\n"
-		"                (Scripted mode implies -o)\n\n");
+		printf("Usage: gblinkdx \"output filename\" [options]\n"
+		" Options can be: "
+        "  Modes (Set only one of these)\n"
+        "   -i for interactive mode\n"
+		"   -q for quiet interactive mode\n"
+		"   -o to override auto-detection and dump max size as standard MBC\n"
+        "   If no mode set, will dump with auto-detected header values\n"
+        "  Connection options\n"
+        "   -pXXXX Use 4-digit hexadecimal port base address XXXX e.g. -pD010. Default is 0378\n"
+        "   -x Use xboo cable compatibility mode. Default is gblink cable mode\n"
+		"  Any other value will be treated as a pre-dump script filename\n"
+		"                 (Scripted mode implies -o)\n\n");
         return 3;
     }
 
@@ -409,7 +471,29 @@ int main(int argc, char* argv[])
         }
     }
 
-	printf("Setting up port %04x...\n", dataPort);
+    if (argc >= 3) {
+        for (int argno = 2; argno < argc; argno++) {
+            if ( memcmp(argv[argno],"-x",2) == 0 ) {
+                xbooCompat = true;
+            } else if ( memcmp(argv[argno],"-p",2) == 0 && strlen(argv[argno]) == 6) {
+                char portStr[5];
+                strncpy(portStr, argv[argno]+2, 5);
+                char *endptr;
+                long port = strtol(portStr, &endptr, 16);
+                if (endptr != portStr && *endptr == '\0') {
+                    dataPort = (unsigned short)port;
+                    statusPort = dataPort + 1;
+                    controlPort = dataPort + 2;
+                }
+            }
+        }
+    }
+
+    if (xbooCompat) {
+        printf("Setting up port %04x (xboo cable)...\n", dataPort);
+    } else {
+        printf("Setting up port %04x (gblink cable)...\n", dataPort);
+    }
 
 #ifdef __linux__
 	ioperm(dataPort, 3 , true);
@@ -417,9 +501,7 @@ int main(int argc, char* argv[])
 	i386_set_ioperm(dataPort, 3, true);
 #endif
     // set up the parallel port
-	outportb(controlPort, inportb(controlPort)&(~CTL_MODE_DATAIN));
-	outportb(dataPort, 0xFF);
-	outportb(dataPort, D_CLOCK_HIGH);
+	initPort();
 
     // perform communication
 	printf("Waiting for Game Boy...\n");
@@ -487,18 +569,20 @@ int main(int argc, char* argv[])
 	quietMode = false;
 	char* scriptName;
 	if (argc >= 3) {
-		if ( memcmp(argv[2],"-o",2) == 0 )
-			overrideMode = true;
-		else if ( memcmp(argv[2],"-i",2) == 0 )
-			interactiveMode = true;
-		else if ( memcmp(argv[2],"-q",2) == 0 ) {
-			interactiveMode = true;
-			quietMode = true;
-		} else {
-			scriptedMode = true;
-			overrideMode = true;
-			scriptName = argv[2];
-		}
+        for (int argno = 2; argno < argc; argno++) {
+            if ( memcmp(argv[argno],"-o",2) == 0 )
+                overrideMode = true;
+            else if ( memcmp(argv[argno],"-i",2) == 0 )
+                interactiveMode = true;
+            else if ( memcmp(argv[argno],"-q",2) == 0 ) {
+                interactiveMode = true;
+                quietMode = true;
+            } else {
+                scriptedMode = true;
+                overrideMode = true;
+                scriptName = argv[argno];
+            }
+        }
 	}
 
 	while(1) {
@@ -542,9 +626,7 @@ int main(int argc, char* argv[])
 
 	}
 
-	outportb(dataPort, D_CLOCK_HIGH);
-	outportb(controlPort, inportb(controlPort)&(~CTL_MODE_DATAIN));
-	outportb(dataPort, 0xFF);
+    deinitPort();
 
 #ifdef _WIN32
 	FreeLibrary(hInpOutDll);
