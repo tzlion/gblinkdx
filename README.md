@@ -28,6 +28,7 @@ You will need
   [Brian Provinciano's original GBlinkdl package](http://web.archive.org/web/20070203014624/http://www.bripro.com/low/hardware/gblinkdl/files/gblinkdl.zip)
 * A GB Link -> Parallel cable, which you can build according to the schematic in the package linked above (the one
   supplied with the GB PC Linker will also work, but is vanishingly rare at this point)
+* OR an Xboo cable
 
 Running this software
 --------------------
@@ -48,12 +49,14 @@ Running this software
 If you are using a parallel port on an expansion card, you will probably need to override the port address from the
 default.
 
-To do this, save the 4-digit hexadecimal base address in a text file named port.ini and place it in the same directory
+You can do this one of two ways
+* Save the 4-digit hexadecimal base address in a text file named port.ini and place it in the same directory
 as the gblinkdx executable.
+* Use the -p option on the command line followed by the 4-digit hexadecimal base address with no space e.g. `-pD010`
 
-In Windows you can find this in Device Manager -> Ports (COM & LPT) -> right-click on your expansion card -> Properties
--> Resources -> I/O Range. The number at the start of the range is the base address. For example for the StarTech card
-it is D010.
+In Windows you can find the port address in Device Manager -> Ports (COM & LPT) -> right-click on your expansion card 
+-> Properties -> Resources -> I/O Range. The number at the start of the range is the base address. For example for the
+StarTech card it is D010.
 
 Linking with a Game Boy
 -----------------------
@@ -88,23 +91,37 @@ Game Genie in the system.
 Options/modes
 -------------
 
-The first parameter is always the ROM name. The second can be a few different things - examples:
+The first parameter is always the ROM name. Following parameters can be:
 
-**No second parameter** e.g. `gblinkdx dump.gb`:
+### Modes
+
+Specify only one of these.
+
+**None** e.g. `gblinkdx dump.gb`:  
 Auto-detect cart type based on header, and dump the cartridge to dump.gb
 
-**-o** e.g. `gblinkdx dump.gb -o`
+**-o** e.g. `gblinkdx dump.gb -o`  
 Dump the cartridge to dump.gb as 4mb standard MBC (ignoring the header, useful for unlicensed carts with wrong headers)
 
-**-i** e.g. `gblinkdx dump.gb -i`
+**-i** e.g. `gblinkdx dump.gb -i`  
 Enter interactive mode, see below
 
-**-q** e.g. `gblinkdx dump.gb -q`
+**-q** e.g. `gblinkdx dump.gb -q`  
 Enter quiet interactive mode. This works the same as interactive mode but does not output the actions it is performing,
 it only outputs data read from the Game Boy.
 
-**Script filename** (any other value) e.g. `gblinkdx dump.gb somescript.txt`
+**Script filename** (any other value) e.g. `gblinkdx dump.gb somescript.txt`  
 Perform writes defined in somescript.txt before dumping (implies -o)
+
+### Connection options
+
+You can specify any number of these in addition to a mode.
+
+**-x**  
+Enables xboo cable compatibility mode. If not specified it will use gblink cable mode.
+
+**-pXXXX**  
+Use parallel port base address XXXX, e.g. `-pD010`. See "Using a custom port" for more info.
 
 Interactive mode
 ----------------
