@@ -438,7 +438,7 @@ int main(int argc, char* argv[])
 	}
 #endif
     printf(
-        "GBlinkDX PC Client v0.3\n"
+        "GBlinkDX PC Client v0.4\n"
         "Original GBlinkdl by Brian Provinciano November 2nd, 2005 http://www.bripro.com\n"
 		"Modified by taizou 2016-2024\n\n");
 
