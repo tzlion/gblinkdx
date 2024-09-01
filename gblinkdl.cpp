@@ -570,6 +570,9 @@ int main(int argc, char* argv[])
 	char* scriptName;
 	if (argc >= 3) {
         for (int argno = 2; argno < argc; argno++) {
+            if ( memcmp(argv[argno],"-x",2) == 0 || memcmp(argv[argno],"-p",2) == 0 ) {
+                continue;
+            }
             if ( memcmp(argv[argno],"-o",2) == 0 )
                 overrideMode = true;
             else if ( memcmp(argv[argno],"-i",2) == 0 )
