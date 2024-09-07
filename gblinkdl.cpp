@@ -5,7 +5,9 @@
 // November 2nd, 2005
 // Modified by taizou 2016-2017
 /******************************************************************************/
+extern "C" {
 #include "ppgb.h"
+}
 #include "typedefs.h"
 #include "stdio.h"
 #include "string.h"
