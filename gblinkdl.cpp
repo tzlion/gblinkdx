@@ -217,8 +217,7 @@ int doDump(char* filename,bool overrideMode,U8 carttype, int bankscount)
             }
             break;
         default:
-			printf("Cartridge type (real): %02X\n", hdr.carttype);
-			printf("Trying as regular ass MBC(5)\n");
+			printf("Dumping as regular MBC(5) compatible\n");
 			gb_readblock(f, 0x0000, 0x4000);
 			for(int bank = 1; bank<bankscount; bank++) {
                     gb_sendwrite(0x2000,bank);
