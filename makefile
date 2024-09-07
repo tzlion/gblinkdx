@@ -1,7 +1,7 @@
 INSTALL_PATH?=/usr/local
 
-build: gblinkdl.cpp typedefs.h
-	g++ -o gblinkdx gblinkdl.cpp -I.
+build: gblinkdl.cpp typedefs.h ppgb.h ppgb.c
+	g++ -o gblinkdx gblinkdl.cpp ppgb.c  -I.
 
 install: build
 	mv gblinkdx $(INSTALL_PATH)/bin
