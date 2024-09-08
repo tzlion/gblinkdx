@@ -20,9 +20,9 @@ You will need
 
 * A Game Boy Color (GBA probably can't do the cart swap due to hardware switching, wasn't able to get it working on a GB
   Pocket either)
-* A computer running Windows or Linux with an onboard parallel port or compatible expansion card (not tested with USB
-  adapters)
-  * (The StarTech PEX1P2 PCIe card with AX99100 chip has been tested and works, at least under Windows) 
+* A computer running Windows or Linux with an onboard parallel port or compatible expansion card
+  * The StarTech PEX1P2 PCIe card with AX99100 chip has been tested and works, under both Windows and Linux
+  * As far as I know, USB to parallel adapters will not work
 * A Game Boy flash cart
 * The gblinkdl.gb Game Boy ROM which you can find in
   [Brian Provinciano's original GBlinkdl package](http://web.archive.org/web/20070203014624/http://www.bripro.com/low/hardware/gblinkdl/files/gblinkdl.zip)
