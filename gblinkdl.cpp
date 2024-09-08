@@ -3,7 +3,7 @@
 // Original by Brian Provinciano
 // http://www.bripro.com
 // November 2nd, 2005
-// Modified by taizou 2016-2017
+// Modified by taizou 2016-2024
 /******************************************************************************/
 extern "C" {
 #include "ppgb.h"
@@ -38,15 +38,6 @@ bool quietMode = false;
 bool xbooCompat = false;
 
 unsigned short dataPort = LPTREG_DATA;
-unsigned short statusPort = LPTREG_STATUS;
-unsigned short controlPort = LPTREG_CONTROL;
-
-#ifdef _WIN32
-typedef void(__stdcall *lpOut32)(short, short);
-typedef short(__stdcall *lpInp32)(short);
-lpOut32 gfpOut32;
-lpInp32 gfpInp32;
-#endif
 
 void printMessage(const char* message)
 {
@@ -328,17 +319,6 @@ int interactive()
 /******************************************************************************/
 int main(int argc, char* argv[])
 {
-#ifdef _WIN32
-	HINSTANCE hInpOutDll;
-	hInpOutDll = LoadLibrary("inpout32.dll");
-	if (hInpOutDll != NULL) {
-		gfpOut32 = (lpOut32)GetProcAddress(hInpOutDll, "Out32");
-		gfpInp32 = (lpInp32)GetProcAddress(hInpOutDll, "Inp32");
-	} else {
-		printf("Unable to load inpout32.dll\n");
-		return -1;
-	}
-#endif
     printf(
         "GBlinkDX PC Client v0.4\n"
         "Original GBlinkdl by Brian Provinciano November 2nd, 2005 http://www.bripro.com\n"
@@ -368,8 +348,6 @@ int main(int argc, char* argv[])
         long port = strtol(portStr, &endptr, 16);
         if (endptr != portStr && *endptr == '\0') {
             dataPort = (unsigned short)port;
-            statusPort = dataPort + 1;
-            controlPort = dataPort + 2;
         }
     }
 
@@ -384,8 +362,6 @@ int main(int argc, char* argv[])
                 long port = strtol(portStr, &endptr, 16);
                 if (endptr != portStr && *endptr == '\0') {
                     dataPort = (unsigned short)port;
-                    statusPort = dataPort + 1;
-                    controlPort = dataPort + 2;
                 }
             }
         }
