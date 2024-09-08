@@ -3,15 +3,20 @@
 // Original by Brian Provinciano
 // http://www.bripro.com
 // November 2nd, 2005
-// Modified by taizou 2016-2017
+// Modified by taizou 2016-2024
 /******************************************************************************/
+extern "C" {
+#include "ppgb.h"
+}
 #include "typedefs.h"
 #include "stdio.h"
 #include "string.h"
 #include "stdlib.h"
 #ifdef __linux__
+#include <unistd.h>
 #include <sys/io.h>
 #elif defined(__FreeBSD__)
+#include <unistd.h>
 #include <sys/types.h>
 #include <machine/cpufunc.h>
 #include <machine/sysarch.h>
@@ -33,90 +38,10 @@ bool quietMode = false;
 bool xbooCompat = false;
 
 unsigned short dataPort = LPTREG_DATA;
-unsigned short statusPort = LPTREG_STATUS;
-unsigned short controlPort = LPTREG_CONTROL;
 
-#ifdef _WIN32
-typedef void(__stdcall *lpOut32)(short, short);
-typedef short(__stdcall *lpInp32)(short);
-lpOut32 gfpOut32;
-lpInp32 gfpInp32;
-#endif
-
-/******************************************************************************/
-unsigned char inportb(unsigned short port)
+void printMessage(const char* message)
 {
-#ifdef _WIN32
-	return gfpInp32(port);
-#else
-   return inb(port);
-#endif
-}
-/******************************************************************************/
-void outportb(unsigned short port, unsigned char value)
-{
-#ifdef _WIN32
-	gfpOut32(port,value);
-#elif defined(__FreeBSD__)
-   outb(port,value);
-#elif defined(__linux__)
-   outb(value,port);
-#endif
-}
-/******************************************************************************/
-
-void writeToGb(U8 value, bool clock)
-{
-    if (xbooCompat) {
-        U8 ctrl = inportb(controlPort) & 0xFC;
-        ctrl = ctrl|(!clock);
-        ctrl = ctrl|((!value) << 1);
-        outportb(controlPort, ctrl);
-    } else {
-        outportb(dataPort, value|(clock ? D_CLOCK_HIGH : 0));
-    }
-}
-
-bool readFromGb()
-{
-    if (xbooCompat) {
-        U8 stat = inportb(statusPort);
-        return stat&STATUS_ACK;
-    } else {
-        U8 stat = inportb(statusPort);
-        return !(stat&STATUS_BUSY);
-    }
-}
-
-void initPort()
-{
-    if (xbooCompat) {
-        outportb(controlPort, inportb(controlPort)&(~CTL_MODE_DATAIN));
-        writeToGb(1, 1);
-        writeToGb(0, 1);
-    } else {
-        outportb(controlPort, inportb(controlPort)&(~CTL_MODE_DATAIN));
-        outportb(dataPort, 0xFF);
-        outportb(dataPort, D_CLOCK_HIGH);
-    }
-}
-
-void deinitPort()
-{
-    if (xbooCompat) {
-        writeToGb(0, 1);
-        outportb(controlPort, inportb(controlPort)&(~CTL_MODE_DATAIN));
-        writeToGb(1, 1);
-    } else {
-        outportb(dataPort, D_CLOCK_HIGH);
-        outportb(controlPort, inportb(controlPort)&(~CTL_MODE_DATAIN));
-        outportb(dataPort, 0xFF);
-    }
-}
-
-void delayRead()
-{
-    inportb(dataPort);
+    printf("%s\n", message);
 }
 
 /******************************************************************************/
@@ -131,45 +56,14 @@ char *printbin(U8 v)
 	return szt;
 }
 /******************************************************************************/
-void lptdelay(int amt)
-{
-    for(int i=0;i<amt;i++)
-		delayRead();
-}
-/******************************************************************************/
 U8 gb_sendbyte(U8 value)
 {
-	U8 read = 0;
-	for(int i=7;i>=0;i--) {
-		U8 v = (value>>i)&1;
-
-        writeToGb(v, 1);
-        writeToGb(v, 0);
-
-		if(readFromGb())
-			read |= (1<<i);
-
-        writeToGb(v, 1);
-	}
-	lptdelay(64);
-	return read;
+    return PPGBTransfer(value);
 }
 /******************************************************************************/
 U8 gb_readbyte()
 {
-	U8 read = 0;
-	for(int i=7;i>=0;i--) {
-        writeToGb(0, 1);
-        writeToGb(0, 0);
-
-		if(readFromGb())
-			read |= (1<<i);
-
-        writeToGb(0, 1);
-	}
-	// delay between bytes
-	lptdelay(64);
-	return read;
+	return PPGBTransfer(0);
 }
 /******************************************************************************/
 U16 gb_readword()
@@ -314,8 +208,7 @@ int doDump(char* filename,bool overrideMode,U8 carttype, int bankscount)
             }
             break;
         default:
-			printf("Cartridge type (real): %02X\n", hdr.carttype);
-			printf("Trying as regular ass MBC(5)\n");
+			printf("Dumping as regular MBC(5) compatible\n");
 			gb_readblock(f, 0x0000, 0x4000);
 			for(int bank = 1; bank<bankscount; bank++) {
                     gb_sendwrite(0x2000,bank);
@@ -426,17 +319,6 @@ int interactive()
 /******************************************************************************/
 int main(int argc, char* argv[])
 {
-#ifdef _WIN32
-	HINSTANCE hInpOutDll;
-	hInpOutDll = LoadLibrary("inpout32.dll");
-	if (hInpOutDll != NULL) {
-		gfpOut32 = (lpOut32)GetProcAddress(hInpOutDll, "Out32");
-		gfpInp32 = (lpInp32)GetProcAddress(hInpOutDll, "Inp32");
-	} else {
-		printf("Unable to load inpout32.dll\n");
-		return -1;
-	}
-#endif
     printf(
         "GBlinkDX PC Client v0.4\n"
         "Original GBlinkdl by Brian Provinciano November 2nd, 2005 http://www.bripro.com\n"
@@ -466,8 +348,6 @@ int main(int argc, char* argv[])
         long port = strtol(portStr, &endptr, 16);
         if (endptr != portStr && *endptr == '\0') {
             dataPort = (unsigned short)port;
-            statusPort = dataPort + 1;
-            controlPort = dataPort + 2;
         }
     }
 
@@ -482,31 +362,23 @@ int main(int argc, char* argv[])
                 long port = strtol(portStr, &endptr, 16);
                 if (endptr != portStr && *endptr == '\0') {
                     dataPort = (unsigned short)port;
-                    statusPort = dataPort + 1;
-                    controlPort = dataPort + 2;
                 }
             }
         }
     }
 
-    if (xbooCompat) {
-        printf("Setting up port %04x (xboo cable)...\n", dataPort);
-    } else {
-        printf("Setting up port %04x (gblink cable)...\n", dataPort);
-    }
-
-#ifdef __linux__
-	ioperm(dataPort, 3 , true);
-#elif defined(__FreeBSD__)
-	i386_set_ioperm(dataPort, 3, true);
-#endif
-    // set up the parallel port
-	initPort();
+    PPGBInit(dataPort, xbooCompat, 8, -1, printMessage);
 
     // perform communication
 	printf("Waiting for Game Boy...\n");
     while(gb_sendbyte(0x9A)!=0xB4) {}
-    lptdelay(2000);
+
+#ifdef _WIN32
+    Sleep(10);
+#else
+    usleep(10000);
+#endif
+
     if(gb_sendbyte(0x9A)!=0x1D) {
         printf("Bad connection\n");
         return 1;
@@ -570,6 +442,9 @@ int main(int argc, char* argv[])
 	char* scriptName;
 	if (argc >= 3) {
         for (int argno = 2; argno < argc; argno++) {
+            if ( memcmp(argv[argno],"-x",2) == 0 || memcmp(argv[argno],"-p",2) == 0 ) {
+                continue;
+            }
             if ( memcmp(argv[argno],"-o",2) == 0 )
                 overrideMode = true;
             else if ( memcmp(argv[argno],"-i",2) == 0 )
@@ -626,11 +501,7 @@ int main(int argc, char* argv[])
 
 	}
 
-    deinitPort();
-
-#ifdef _WIN32
-	FreeLibrary(hInpOutDll);
-#endif
+    PPGBDeinit();
 
 	printf("exiting\n");
 
